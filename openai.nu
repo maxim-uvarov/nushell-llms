@@ -245,7 +245,7 @@ export def test [
 }
 
 export def ask [
-    input?: string # The question to ask. If not provided, will use the input from the pipeline
+    ...input: string # The question to ask. If not provided, will use the input from the pipeline
     --model (-m): string = "gpt-4o-mini" # The model to use, defaults to gpt-3.5-turbo
     --max-tokens: int = 4000 # The maximum number of tokens to generate, defaults to 150
     --system: string = "Answer my question as if you were an expert in the field."
@@ -254,7 +254,7 @@ export def ask [
     --quiet (-q) # don't output the results
     --no-stream
 ] {
-    let input = if $input == null { } else { $input }
+    let input = if $input == [] { } else { $input | str join "\n\n---\n\n" }
     let messages = [
         {"role": "system" "content": $system}
         {"role": "user" "content": $input}
