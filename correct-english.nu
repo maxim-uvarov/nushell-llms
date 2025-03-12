@@ -7,10 +7,6 @@ export def main [
 ] {
     let prompt = if $prompt == null { } else { $prompt }
 
-    let prompt_ending_newlines = $prompt
-    | parse -r '(\n*)$'
-    | get capture0.0
-
     let answer = [
         'Edit the message and correct grammar.'
         'Provide only the edited message.'
@@ -18,7 +14,6 @@ export def main [
     ]
     | to text
     | ask $prompt --system $in --no-stream
-    | $'($in)($prompt_ending_newlines)'
 
     let filename = now-fn
 
@@ -33,7 +28,7 @@ export def main [
 
         codium --diff $prompt_path $answer_path
     } else {
-        $answer + $prompt_ending_newlines
+        $answer
     }
 }
 
