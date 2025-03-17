@@ -138,36 +138,6 @@ export def "api chat-completion" [
     | wrap response
 }
 
-# Ask for a command to run. Will return one line command.
-export def --env command [
-    input?: string # The command to run. If not provided, will use the input from the pipeline
-    --max-tokens: int # The maximum number of tokens to generate, defaults to 64
-    --no-interactive # If true, will not ask to execute and will pipe the result
-] {
-    let input = ($in | default $input)
-    if $input == null {
-        error make {msg: "input is required"}
-    }
-    let max_tokens = ($max_tokens | default 200)
-
-    let messages = [
-        {"role": "system" "content": "You are a command line analyzer. Write the command that best fits my request in a \"Command\" markdown chapter then describe each parameter used in a \"Explanation\" markdown chapter."}
-        {"role": "user" "content": $input}
-    ]
-    let result = (api chat-completion "gpt-3.5-turbo" $messages --temperature 0 --top-p 1.0 --frequency-penalty 0.2 --presence-penalty 0 --max-tokens $max_tokens)
-    # return $result
-    set previous_messages ($messages | append [$result.choices.0.message])
-
-    let result = $result.choices.0.message.content
-    $result | utils display markdown
-
-    if not $no_interactive {
-        print ""
-        if (input "Execute ? (y/n) ") == "y" {
-            nu -c $"($result)"
-        }
-    }
-}
 # Continue a chat with GPT-3.5
 export def --env chat [
     input?: string
