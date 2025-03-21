@@ -202,6 +202,93 @@ export def 'ask' [
     if not $quiet { $content }
 }
 
+export def "get-anthropic-api" [] { }
+
+# Chat completion API call that supports streaming responses.
+# Makes a request to the Anthropic Claude API and processes the streaming response line by line.
+export def "api claude-completion" [
+    model: string # ID of the model to use (e.g., "claude-3-7-sonnet-20250219").
+    messages: list # List of message objects in the Anthropic format.
+    --max-tokens: int = 4096 # Maximum number of tokens in the generated completion.
+    --temperature: number # Controls randomness (0-1, higher = more random).
+    --top-p: number # Controls diversity via nucleus sampling (0-1).
+    --top-k: int # Limits sampling to top K options per token.
+    --stop-sequences: list # Sequences where the API will stop generating tokens.
+    --system: string # System prompt to send to Claude.
+    --user: string # Unique identifier for the end-user making the request.
+    --anthropic-version: string = "2023-06-01" # API version to use.
+    --no-stream # Flag to disable streaming mode.
+] {
+    # Build the API request parameters, starting with required ones
+    let request_params = {
+        model: $model
+        messages: $messages
+        max_tokens: ($max_tokens | default 4096)
+    }
+    | add_param "temperature" $temperature
+    | add_param "top_p" $top_p
+    | add_param "top_k" $top_k
+    | add_param "stop_sequences" $stop_sequences
+    | add_param "system" $system
+    | add_param "stream" true # Default to streaming mode
+
+    # Determine if we should use streaming based on flag and environment
+    let is_streaming = not ($no_stream or ($nu.is-interactive == false))
+
+    # Setup terminal for streaming display
+    if $is_streaming {
+        clear --keep-scrollback
+        utils print-current-commandline # Show the command being executed
+        print -n (ansi --escape "s") # Save cursor position for later restoration
+    }
+
+    # Make API call and process streaming response
+    (
+        http post "https://api.anthropic.com/v1/messages"
+        -H [
+            "x-api-key"
+            $"(get-anthropic-api)"
+            "anthropic-version"
+            $anthropic_version
+            "content-type"
+            "application/json"
+        ]
+        -t 'application/json'
+        $request_params
+    )
+    | lines # Process the response line by line for streaming
+    | each {|line|
+        # Handle end of stream marker
+        if $line == "data: [DONE]" {
+            if $is_streaming {
+                print -n $'(ansi --escape "u")(ansi --escape "J")' # Restore cursor position and clear line
+            }
+            return
+        }
+
+        # Process each data line from the stream
+        $line
+        | if ($in in ["\n" '']) { } else {
+            # Skip empty lines
+            if ($in starts-with "data: ") {
+                str substring 6.. # Remove "data: " prefix
+                | from json # Parse JSON
+                | if ($in | get type) == "content_block_delta" {
+                    # Check for content delta
+                    if ($in | get delta.text | is-not-empty) {
+                        $in.delta.text # Extract the delta text content
+                    }
+                } else { }
+            } else { }
+        }
+        | if $is_streaming {
+            tee { $'(ansi yellow)($in)(ansi reset)' | print -n } # Print in yellow while streaming
+        } else { } # Otherwise just pass through for accumulation
+    }
+    | str join # Combine all content pieces
+    | wrap response # Return as a record with 'response' field
+}
+
 export def 'pu-add' [
     command: string
 ] {
