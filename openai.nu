@@ -67,28 +67,31 @@ def --env "get previous_messages" [] {
 }
 
 # Helper function to add a parameter to a record if it's not null.
+# Returns the original record with the new parameter added if value is not null.
 def add_param [name: string, value: any] {
     if $value != null {
         upsert $name $value
     } else { }
 }
-# Chat completion API call.
+
+# Chat completion API call that supports streaming responses.
+# Makes a request to the OpenAI API and processes the streaming response line by line.
 export def "api chat-completion" [
-    model: string # ID of the model to use.
-    messages: list # List of messages to complete from.
-    --max-tokens: int # The maximum number of tokens to generate in the completion.
-    --temperature: number # The temperature used to control the randomness of the completion.
-    --top-p: number # The top-p used to control the randomness of the completion.
-    --n: int # How many completions to generate for each prompt. Use carefully, as it's a token eater.
-    --stop: string # Up to 4 sequences where the API will stop generating further tokens.
-    --frequency-penalty: number # A penalty to apply to each token that appears more than once in the completion.
-    --presence-penalty: number # A penalty to apply if the specified tokens don't appear in the completion.
-    --logit-bias: record # A record to modify the likelihood of specified tokens appearing in the completion
-    --user: string # A unique identifier representing your end-user.
-    --no-stream
+    model: string # ID of the model to use (e.g., "gpt-4").
+    messages: list # List of message objects in the OpenAI format.
+    --max-tokens: int # Maximum number of tokens in the generated completion.
+    --temperature: number # Controls randomness (0-2, higher = more random).
+    --top-p: number # Controls diversity via nucleus sampling (0-1).
+    --n: int # Number of completions to generate per prompt.
+    --stop: string # Sequences where the API will stop generating tokens.
+    --frequency-penalty: number # Penalty for token repetition (-2.0 to 2.0).
+    --presence-penalty: number # Penalty for new tokens (-2.0 to 2.0).
+    --logit-bias: record # Modify likelihood of specific tokens appearing.
+    --user: string # Unique identifier for the end-user making the request.
+    --no-stream # Flag to disable streaming mode.
 ] {
-    # See https://platform.openai.com/docs/api-reference/chat/create
-    let params = {model: $model messages: $messages}
+    # Build the API request parameters, starting with required ones
+    let request_params = {model: $model messages: $messages}
     | add_param "max_tokens" $max_tokens
     | add_param "temperature" $temperature
     | add_param "top_p" $top_p
@@ -98,44 +101,50 @@ export def "api chat-completion" [
     | add_param "presence_penalty" $presence_penalty
     | add_param "logit_bias" $logit_bias
     | add_param "user" $user
-    | add_param "stream" true
+    | add_param "stream" true # Default to streaming mode
 
-    let streaming = not ($no_stream or ($nu.is-interactive == false))
+    # Determine if we should use streaming based on flag and environment
+    let is_streaming = not ($no_stream or ($nu.is-interactive == false))
 
-    if $streaming {
+    # Setup terminal for streaming display
+    if $is_streaming {
         clear --keep-scrollback
-        utils print-current-commandline
-        print -n (ansi --escape "s")
+        utils print-current-commandline # Show the command being executed
+        print -n (ansi --escape "s") # Save cursor position for later restoration
     }
 
+    # Make API call and process streaming response
     (
         http post "https://api.openai.com/v1/chat/completions"
         -H ["Authorization" $"Bearer (get-api)"]
         -t 'application/json'
-        $params
+        $request_params
     )
-    | lines
+    | lines # Process the response line by line for streaming
     | each {|line|
+        # Handle end of stream marker
         if $line == "data: [DONE]" {
-            if $streaming {
-                print -n $'(ansi --escape "u")(ansi --escape "J")'
+            if $is_streaming {
+                print -n $'(ansi --escape "u")(ansi --escape "J")' # Restore cursor position and clear line
             }
             return
         }
 
+        # Process each data line from the stream
         $line
         | if ($in in ["\n" '']) { } else {
-            str substring 6..
-            | from json
-            | get choices.0.delta
-            | if ($in | is-not-empty) { $in.content }
+            # Skip empty lines
+            str substring 6.. # Remove "data: " prefix
+            | from json # Parse JSON
+            | get choices.0.delta # Extract the delta content
+            | if ($in | is-not-empty) { $in.content } # Get just the content if present
         }
-        | if $streaming {
-            tee { $'(ansi yellow)($in)(ansi reset)' | print -n }
-        } else { }
+        | if $is_streaming {
+            tee { $'(ansi yellow)($in)(ansi reset)' | print -n } # Print in yellow while streaming
+        } else { } # Otherwise just pass through for accumulation
     }
-    | str join
-    | wrap response
+    | str join # Combine all content pieces
+    | wrap response # Return as a record with 'response' field
 }
 
 # Continue a chat with GPT-3.5
@@ -214,7 +223,7 @@ export def test [
     api chat-completion "gpt-3.5-turbo" [{role: "user" content: "Hello!"}] --temperature 0 --top-p 1.0 --frequency-penalty 0.2 --presence-penalty 0 --max-tokens 64 --stop "\\n"
 }
 
-export def ask [
+export def 'ask' [
     ...input: string # The question to ask. If not provided, will use the input from the pipeline
     --model (-m): string = "gpt-4o-mini" # The model to use, defaults to gpt-3.5-turbo
     --max-tokens: int = 4000 # The maximum number of tokens to generate, defaults to 150
