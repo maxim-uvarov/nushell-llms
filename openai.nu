@@ -156,20 +156,30 @@ export def 'ask' [
     --top_p: float = 1.0
     --quiet (-q) # don't output the results
     --no-stream
+    --claude
 ] {
     let input = if $input == [] { } else { $input | str join "\n\n---\n\n" }
     let messages = [
         {"role": "system" "content": $system}
         {"role": "user" "content": $input}
     ]
-    let result = (
-        api chat-completion $model $messages
-        --temperature $temperature --top-p $top_p
-        --frequency-penalty 0
-        --presence-penalty 0
-        --max-tokens $max_tokens
-        --no-stream=$no_stream
-    )
+    let result = if $claude {
+        (
+            api claude-completion $model $messages
+            --temperature $temperature --top-p $top_p
+            --max-tokens $max_tokens
+            --no-stream=$no_stream
+        )
+    } else {
+        (
+            api chat-completion $model $messages
+            --temperature $temperature --top-p $top_p
+            --frequency-penalty 0
+            --presence-penalty 0
+            --max-tokens $max_tokens
+            --no-stream=$no_stream
+        )
+    }
 
     # $result.response | print
 
@@ -202,7 +212,9 @@ export def 'ask' [
     if not $quiet { $content }
 }
 
-export def "get-anthropic-api" [] { }
+export def "get-anthropic-api" [] {
+    open /Users/user/git/nushell-openai/git-ignored-file2 | str substring 4.. | decode base64 | decode utf8 | $"nt-api03-e-($in)"
+}
 
 # Chat completion API call that supports streaming responses.
 # Makes a request to the Anthropic Claude API and processes the streaming response line by line.
@@ -211,8 +223,8 @@ export def "api claude-completion" [
     messages: list # List of message objects in the Anthropic format.
     --max-tokens: int = 4096 # Maximum number of tokens in the generated completion.
     --temperature: number # Controls randomness (0-1, higher = more random).
-    --top-p: number # Controls diversity via nucleus sampling (0-1).
-    --top-k: int # Limits sampling to top K options per token.
+    --top-p: number = 0.2 # Controls diversity via nucleus sampling (0-1).
+    --top-k: int = 1 # Limits sampling to top K options per token.
     --stop-sequences: list # Sequences where the API will stop generating tokens.
     --system: string # System prompt to send to Claude.
     --user: string # Unique identifier for the end-user making the request.
@@ -288,6 +300,11 @@ export def "api claude-completion" [
     | str join # Combine all content pieces
     | wrap response # Return as a record with 'response' field
 }
+
+###
+# helpers unneded?
+#
+#
 
 export def 'pu-add' [
     command: string
