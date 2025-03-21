@@ -205,7 +205,12 @@ export def 'ask' [
 export def 'pu-add' [
     command: string
 ] {
-    do { pueue add -p $'nu -c "source /Users/user/apps-files/github/nushell-openai/openai.nu; ($command)" --config "($nu.config-path)" --env-config "($nu.env-path)"' }
+    job spawn {
+        (
+            nu -c $"source /Users/user/apps-files/github/nushell-openai/openai.nu; ($command)"
+            --config $nu.config-path --env-config $nu.env-path
+        )
+    }
     | null
 }
 
