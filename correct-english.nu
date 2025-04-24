@@ -26,7 +26,7 @@ export def main [
     if $codium {
         $answer | pbcopy
 
-        codium --diff $prompt_path $answer_path
+        codium -n --diff $prompt_path $answer_path
     } else {
         $answer
     }
