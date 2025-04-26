@@ -7,22 +7,19 @@ export def main [
 ] {
     let prompt = if $prompt == null { } else { $prompt }
 
-    let answer = "**Prompt:**
-         Carefully review the following text for grammar, spelling, punctuation, clarity, and style.
+    let answer = "Carefully review the following text for grammar, spelling, punctuation, clarity, and style.
+    Edit the text using Critic Markup with the following conventions:
+    - Substitutions: {~~ original text ~> corrected text ~~}
+    - Additions: {++ inserted text ++}
+    - Deletions: {-- deleted text --}
+    - Comments (optional, if necessary): {>> comment <<}
 
-        Edit it by using **Critic Markup** to highlight changes:
-
-        * Substitutions: {~~ original text ~> corrected text ~~}
-        * Additions: {++ inserted text ++}
-        * Deletions: {-- deleted text --}
-        * Comments (optional if needed): {>> comment <<}
-
-        **Important instructions:**
-        * Do not mark capitalization changes
-        * If you added comma or other punctuation without changing words - provide those changes in separate tags
-        * Only output the edited version with Critic Markup annotations.
-        * Do not provide explanations or additional commentary.
-        * Preserve the original meaning and tone unless correction requires slight adjustments.
+    Important Rules:
+    - Ignore capitalization-only changes (do not mark case edits).
+    - Punctuation-only edits (e.g., adding commas, periods) must each be enclosed in a separate Critic Markup tag.
+    - Preserve the original meaning and tone unless a change is necessary for clarity or readability.
+    - Only output the edited text with Critic Markup annotations.Do not include explanations, summaries, or any extra commentary.
+    - Follow these rules precisely.
     "
     | str replace -arm '^\s+' ''
     | ask $prompt --system $in --no-stream --temperature 0.3
