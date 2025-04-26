@@ -7,16 +7,24 @@ export def main [
 ] {
     let prompt = if $prompt == null { } else { $prompt }
 
-    let answer = [
-        'Edit the message and correct grammar.'
-        'Provide only the edited message with corrections marked as critic markup:
-- Addition `{++ ++}`
-- Deletion `{-- --}`
-- Substitution `{~~ ~> ~~}`
-- Comment `{>> <<}`
-'
-    ]
-    | to text
+    let answer = "**Prompt:**
+         Carefully review the following text for grammar, spelling, punctuation, clarity, and style.
+
+        Edit it by using **Critic Markup** to highlight changes:
+
+        * Substitutions: {~~ original text ~> corrected text ~~}
+        * Additions: {++ inserted text ++}
+        * Deletions: {-- deleted text --}
+        * Comments (optional if needed): {>> comment <<}
+
+        **Important instructions:**
+        * Do not mark capitalization changes
+        * If you added comma or other punctuation without changing words - provide those changes in separate tags
+        * Only output the edited version with Critic Markup annotations.
+        * Do not provide explanations or additional commentary.
+        * Preserve the original meaning and tone unless correction requires slight adjustments.
+    "
+    | str replace -arm '^\s+' ''
     | ask $prompt --system $in --no-stream
 
     let filename = now-fn
