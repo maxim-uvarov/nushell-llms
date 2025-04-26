@@ -149,7 +149,7 @@ export def "api chat-completion" [
 
 export def 'ask' [
     ...input: string # The question to ask. If not provided, will use the input from the pipeline
-    --model (-m): string = "gpt-4o-mini" # The model to use, defaults to gpt-3.5-turbo
+    --model (-m): string = "gpt-4.1-mini" # The model to use, defaults to gpt-3.5-turbo
     --max-tokens: int = 4000 # The maximum number of tokens to generate, defaults to 150
     --system: string = "Answer my question as if you were an expert in the field."
     --temperature: float = 0.7
