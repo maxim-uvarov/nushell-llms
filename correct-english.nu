@@ -25,7 +25,7 @@ export def main [
         * Preserve the original meaning and tone unless correction requires slight adjustments.
     "
     | str replace -arm '^\s+' ''
-    | ask $prompt --system $in --no-stream
+    | ask $prompt --system $in --no-stream --temperature 0.3
 
     let filename = now-fn
 
