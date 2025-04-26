@@ -9,8 +9,12 @@ export def main [
 
     let answer = [
         'Edit the message and correct grammar.'
-        'Provide only the edited message.'
-        'Do not change markdown markup.'
+        'Provide only the edited message with corrections marked as critic markup:
+- Addition `{++ ++}`
+- Deletion `{-- --}`
+- Substitution `{~~ ~> ~~}`
+- Comment `{>> <<}`
+'
     ]
     | to text
     | ask $prompt --system $in --no-stream
