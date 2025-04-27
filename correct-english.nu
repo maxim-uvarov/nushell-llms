@@ -18,11 +18,11 @@ export def main [
     - Ignore capitalization-only changes (do not mark case edits).
     - Punctuation-only edits (e.g., adding commas, periods) must each be enclosed in a separate Critic Markup tag.
     - Preserve the original meaning and tone unless a change is necessary for clarity or readability.
-    - Only output the edited text with Critic Markup annotations.Do not include explanations, summaries, or any extra commentary.
+    - Only output the edited text with Critic Markup annotations. Do not include explanations, summaries, or any extra commentary.
     - Follow these rules precisely.
     "
     | str replace -arm '^\s+' ''
-    | ask $prompt --system $in --no-stream --temperature 0.3
+    | ask $prompt --system $in --no-stream --temperature 0.2
 
     let filename = now-fn
 
