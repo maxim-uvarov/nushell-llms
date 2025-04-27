@@ -27,14 +27,14 @@ export def main [
     if $codium {
         $answer | pbcopy
 
-        git diff --word-diff -U10000 $prompt_path $answer_path
+        git diff --word-diff --word-diff-regex=. -U10000 $prompt_path $answer_path
         | lines
         | where $it !~ '^(diff --git|---|index|\+\+\+|@@) '
         | to text
         | save $worddiff_path -f
 
-        zellij action new-tab -n worddiff;
-        zellij edit $worddiff_path;
+        zellij action new-tab -n worddiff --cwd /Users/user/temp/llms --layout classic
+        zellij edit --floating --width 90% --height 90% -x 5% -y 5% $worddiff_path;
         ^open /Users/user/Applications/WezTerm.app
     } else {
         $answer
