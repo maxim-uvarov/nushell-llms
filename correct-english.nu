@@ -15,9 +15,9 @@ export def main [
 
     let filename = now-fn
 
-    let prompt_path = $path | path join $'prompt($filename).txt'
-    let answer_path = $path | path join $'answer($filename).txt'
-    let worddiff_path = $path | path join $'worddiff($filename).txt'
+    let prompt_path = $path | path join $'($filename)_a_prompt.txt'
+    let answer_path = $path | path join $'($filename)_b_answer.txt'
+    let diff_path = $path | path join $'($filename)_c_diff.txt'
 
     $prompt | save -f $prompt_path
     $answer | save -f $answer_path
@@ -29,10 +29,10 @@ export def main [
         | lines
         | where $it !~ '^(diff --git|---|index|\+\+\+|@@) '
         | to text
-        | save $worddiff_path -f
+        | save $diff_path -f
 
         zellij action new-tab -n worddiff --cwd /Users/user/temp/llms --layout classic
-        zellij edit --floating --width 90% --height 90% -x 5% -y 5% $worddiff_path;
+        zellij edit --floating --width 90% --height 90% -x 5% -y 5% $diff_path
         ^open /Users/user/Applications/WezTerm.app
     } else {
         $answer
