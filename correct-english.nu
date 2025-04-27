@@ -7,12 +7,10 @@ export def main [
 ] {
     let prompt = if $prompt == null { } else { $prompt }
 
-    let answer = [
-        'Edit the message and correct grammar.'
-        'Provide only the edited message.'
-        'Do not change markdown markup.'
-    ]
-    | to text
+    let answer = '
+        Edit the message and correct grammar.
+        Provide only the edited message. Do not change markdown markup.'
+    | str replace -arm '^\s+' ''
     | ask $prompt --system $in --no-stream
 
     let filename = now-fn
