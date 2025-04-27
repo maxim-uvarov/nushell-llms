@@ -33,7 +33,9 @@ export def main [
         | to text
         | save $worddiff_path -f
 
-        zellij edit $worddiff_path
+        zellij action new-tab -n worddiff;
+        zellij edit $worddiff_path;
+        ^open /Users/user/Applications/WezTerm.app
     } else {
         $answer
     }
