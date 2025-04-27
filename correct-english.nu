@@ -7,27 +7,19 @@ export def main [
 ] {
     let prompt = if $prompt == null { } else { $prompt }
 
-    let answer = "Carefully review the following text for grammar, spelling, punctuation, clarity, and style.
-    Edit the text using Critic Markup with the following conventions:
-    - Substitutions: {~~ original text ~> corrected text ~~}
-    - Additions: {++ inserted text ++}
-    - Deletions: {-- deleted text --}
-    - Comments (optional, if necessary): {>> comment <<}
-
-    Important Rules:
-    - Ignore capitalization-only changes (do not mark case edits).
-    - Punctuation-only edits (e.g., adding commas, periods) must each be enclosed in a separate Critic Markup tag.
-    - Preserve the original meaning and tone unless a change is necessary for clarity or readability.
-    - Only output the edited text with Critic Markup annotations. Do not include explanations, summaries, or any extra commentary.
-    - Follow these rules precisely.
-    "
-    | str replace -arm '^\s+' ''
-    | ask $prompt --system $in --no-stream --temperature 0.2
+    let answer = [
+        'Edit the message and correct grammar.'
+        'Provide only the edited message.'
+        'Do not change markdown markup.'
+    ]
+    | to text
+    | ask $prompt --system $in --no-stream
 
     let filename = now-fn
 
     let prompt_path = $path | path join $'prompt($filename).txt'
     let answer_path = $path | path join $'answer($filename).txt'
+    let worddiff_path = $path | path join $'worddiff($filename).txt'
 
     $prompt | save -f $prompt_path
     $answer | save -f $answer_path
@@ -35,7 +27,13 @@ export def main [
     if $codium {
         $answer | pbcopy
 
-        codium -n --diff $prompt_path $answer_path
+        git diff --word-diff -U10000 $prompt_path $answer_path
+        | lines
+        | where $it !~ '^(diff --git|---|index|\+\+\+|@@) '
+        | to text
+        | save $worddiff_path -f
+
+        zellij edit $worddiff_path
     } else {
         $answer
     }
